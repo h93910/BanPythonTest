@@ -54,6 +54,7 @@ def cal():
 
 
 def test1():
+    global win, draw, lose
     public = []
     play = [2, 3, 0x34, 5, 0x37, 14]
     # result = Poker.jugg_type(play)
@@ -85,8 +86,6 @@ def test1():
 
 
 
-
-
     # temp = TexasHoldemPokerBOT().win(public, play, 1)
     # for j in range(12):
     #     last = 0
@@ -114,4 +113,4 @@ def test1():
 
 
 if __name__ == "__main__":
-    print(range(-1))
+    test1()
