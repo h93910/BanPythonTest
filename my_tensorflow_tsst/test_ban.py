@@ -2,149 +2,75 @@ import tensorflow as tf
 import numpy as np
 import random
 
-# FLAGS = tf.flags.FLAGS
-# # Our data is coming in via multiple inputs, so to apply the same model to each
-# # we will need to use variable sharing.
-# train_data = get_training_data()
-# test_data = get_test_data()
-#
-# # Make two linear modules, to form a Multi Layer Perceptron. Override the
-# # default names (which would end up being 'linear', 'linear_1') to provide
-# # interpretable variable names in TensorBoard / other tools.
-# lin_to_hidden = snt.Linear(output_size=FLAGS.hidden_size, name='inp_to_hidden')
-# hidden_to_out = snt.Linear(output_size=FLAGS.output_size, name='hidden_to_out')
-#
-# # Sequential is a module which applies a number of inner modules or ops in
-# # sequence to the provided data. Note that raw TF ops such as tanh can be
-# # used interchangeably with constructed modules, as they contain no variables.
-# mlp = snt.Sequential([lin_to_hidden, tf.sigmoid, hidden_to_out])
-#
-# # Connect the sequential into the graph, any number of times.
-# train_predictions = mlp(train_data)
-# test_predictions = mlp(test_data)
 
+class TensorflowBanCaicaile:
+    def __init__(self, ):
+        self.ball_set = []
+        self.temp_set = np.array([])
+        self.my_date_type = tf.float32
 
-# # 创建数据
-# x_data = np.random.rand(100).astype(np.float32)  # 输入 100个随机数字
-# y_data = x_data * 0.1 + 0.3  # 输出
-#
-# Weights = tf.Variable(tf.random_uniform([1], 0, 100.0))  # 变量,一位未知数，范围为(-2,2)
-# biases = tf.Variable(tf.zeros([1]))  # 变量,一位可为零的未知数，
-#
-# y = Weights * x_data + biases  # 推导公式
-#
-# loss = tf.reduce_mean(tf.square(y - y_data))  # 误差
-#
-# optimizer = tf.train.GradientDescentOptimizer(0.3)  # 梯度下降优化
-# train = optimizer.minimize(loss)  # 训练
-#
-# init = tf.global_variables_initializer()  # 替换成这样就好
-#
-# sess = tf.Session()
-# sess.run(init)  # Very important
-#
-# for step in range(2001):
-#     sess.run(train)
-#     if step % 20 == 0:
-#         print(step, sess.run(Weights), sess.run(biases))
+        self.__init_data()
+        self.__init_tensorflow()
 
+    def __init_data(self):
+        total_ball_count = 1000000
+        A = 1607 / 46
+        B = 1022 / 46
+        C = 618 / 46
+        D = 65 / 46
+        self.ball_set = [1] * int(A / 72 * total_ball_count) + [2] * int(B / 72 * total_ball_count) + [3] * int(
+            C / 72 * total_ball_count) + [4] * int(D / 72 * total_ball_count)
 
-# import pandas as pd
-#
-# data = pd.read_csv("C:/Users/yf29/Desktop/TEST.csv", header=0, sep=',')
-# print(data[0:1])
-# print(data)
+        ball_l = len(self.ball_set)
+        if ball_l < total_ball_count:
+            for temp in range(total_ball_count - ball_l):
+                self.ball_set.append(1)
 
-ball_set = []
-temp_set = np.array([])
+    def __my_train_next_batch(self, group):
+        train_x = []
+        train_y = []
+        for i in range(group):
+            r = random.randint(0, 72)
+            node = np.zeros(72, dtype="int").tolist()
+            for j in range(r - 1):
+                node[j] = random.sample(self.ball_set, 1)[0]
+            train_x.append(node)
 
+            result = np.zeros(4, dtype="int").tolist()
+            result[random.sample(self.ball_set, 1)[0] - 1] = 1
+            train_y.append(result)
 
-def init_data():
-    global ball_set
+        return np.array(train_x), np.array(train_y)
 
-    total_ball_count = 1000000
+    def __init_tensorflow(self):
+        print("----------init----------")
+        x = tf.placeholder(self.my_date_type, [None, 72])
+        y_ = tf.placeholder(self.my_date_type, [None, 4])
 
-    A = 1607 / 46
-    B = 1022 / 46
-    C = 618 / 46
-    D = 65 / 46
-    ball_set = [0] * int(A / 72 * total_ball_count) + [1] * int(B / 72 * total_ball_count) + [2] * int(
-        C / 72 * total_ball_count) + [3] * int(D / 72 * total_ball_count)
+        W = tf.Variable(tf.zeros([72, 4]))  # 变量参数,初始化为全零的二维矩阵，784行，10列，因为要做矩阵乘法
+        b = tf.Variable(tf.zeros([4]))  # 变量偏移参数,初始化为全零的一维矩阵，1行，为结果集
+        y = tf.nn.softmax(tf.matmul(x, W) + b)  # 计算公式
+        cross_entropy = -tf.reduce_sum(y_ * tf.log(y))  # 交叉熵公式
 
-    ball_l = len(ball_set)
-    if ball_l < total_ball_count:
-        for temp in range(total_ball_count - ball_l):
-            ball_set.append(0)
+        train_step = tf.train.GradientDescentOptimizer(0.01).minimize(cross_entropy)  # 训练，使用梯度下降法优化交叉熵
 
+        # 正确的预测,预测结果和真值对比 tf.argmax 是行或列的最大值下标向量 第二个参数为1时是按行0是按列
+        correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 
-def get_input_data():
-    global temp_set
+        init = tf.global_variables_initializer()  # 全局变量初始化
+        self.sess = tf.Session()
+        self.sess.run(init)  # Very important
 
-    temp = []
-    for i in range(9):
-        temp.append(random.sample(ball_set, 1))
-    temp_set = np.append(temp_set, temp)[:, np.newaxis]
-    return temp_set
+        for tt in range(10):
+            batch_xs, batch_ys = self.__my_train_next_batch(1000)
+            self.sess.run(train_step, feed_dict={x: batch_xs, y_: batch_ys})  # 开始练习
+            print("%d round:%g" % (tt, self.sess.run(accuracy, feed_dict={x: batch_xs, y_: batch_ys})))  # 打印准确率
+        print("----------complete----------")
 
+    def do_prediction(self, last_ico):
+        pass
 
-def get_result():
-    global temp_set
-
-    result = np.array(random.sample(ball_set, 1))
-    temp_set = np.append(temp_set, result)[:, np.newaxis]
-    return temp_set
-
-
-def print_round():
-    print("[===, ===, ===, ===, ===, ===, ===, ===, ===, ===, ===, ===]")
-    for i, val in enumerate(temp_set):
-        print(int(val), end=" ")
-        if i != 0 and i % 11 == 0:
-            print()
-    print()
-    print("[===, ===, ===, ===, ===, ===, ===, ===, ===, ===, ===, ===]\n")
-
-
-def do_prediction(a_count, b_count, c_count, d_count, a, b, c, d):
-    pass
-
-
-result_set = [1, 2, 3, 4]
-
-
-def add_layer(inputs, in_size, out_size, activation_function=None):
-    Weights = tf.Variable(tf.random_uniform([in_size, out_size], 0, 4, dtype=my_date_type))
-    biases = tf.Variable(tf.zeros([1, out_size]) + 0.1)
-    Wx_plus_b = tf.matmul(inputs, Weights) + biases
-    if activation_function is None:
-        outputs = Wx_plus_b
-    else:
-        outputs = activation_function(Wx_plus_b)
-    return outputs
-
-
-my_date_type = tf.float32
 
 if __name__ == "__main__":
-    init_data()
-
-    xs = tf.placeholder(my_date_type, [None, 72])
-    ys = tf.placeholder(my_date_type, [None, 72])
-
-    l1 = add_layer(xs, 1, 8, activation_function=tf.nn.relu)
-    prediction = add_layer(l1, 8, 1, activation_function=None)
-    loss = tf.reduce_mean(tf.reduce_sum(tf.square(ys - prediction), reduction_indices=[1]))
-    train_step = tf.train.GradientDescentOptimizer(0.1).minimize(loss)
-
-    init = tf.global_variables_initializer()  # 替换成这样就好
-    sess = tf.Session()
-    sess.run(init)  # Very important
-
-    for step in range(5):
-        # training
-        my_input = get_input_data()
-        my_result = get_result()
-        sess.run(train_step, feed_dict={xs: my_input, ys: my_result})
-        if step % 50 == 0:
-            # to see the step improvement
-            print("lose:", sess.run(loss, feed_dict={xs: my_input, ys: my_result}))
+    print("hello")
