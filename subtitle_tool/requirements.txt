@@ -1,0 +1,4 @@
+eyeD3
+pygame
+PyQt5
+pyqt5-tools

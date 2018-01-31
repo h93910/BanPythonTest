@@ -30,7 +30,8 @@ class TensorflowBanCaicaile:
         train_x = []
         train_y = []
         for i in range(group):
-            r = random.randint(0, 72)
+            # r = random.randint(0, 72)
+            r = 72
             node = np.zeros(72, dtype="int").tolist()
             for j in range(r - 1):
                 node[j] = random.sample(self.ball_set, 1)[0]
@@ -63,8 +64,8 @@ class TensorflowBanCaicaile:
         self.sess.run(init)  # Very important
 
         for tt in range(10):
-            batch_xs, batch_ys = self.__my_train_next_batch(1000)
-            self.sess.run(train_step, feed_dict={x: batch_xs, y_: batch_ys})  # 开始练习
+            batch_xs, batch_ys = self.__my_train_next_batch(100)
+            print(self.sess.run((train_step, y), feed_dict={x: batch_xs, y_: batch_ys}))  # 开始练习
             print("%d round:%g" % (tt, self.sess.run(accuracy, feed_dict={x: batch_xs, y_: batch_ys})))  # 打印准确率
         print("----------complete----------")
 
@@ -73,4 +74,4 @@ class TensorflowBanCaicaile:
 
 
 if __name__ == "__main__":
-    print("hello")
+    bot = TensorflowBanCaicaile()

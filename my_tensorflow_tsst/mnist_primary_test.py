@@ -23,8 +23,8 @@ init = tf.global_variables_initializer()  # 全局变量初始化
 sess = tf.Session()
 sess.run(init)  # Very important
 
-for i in range(10000):
+for i in range(10):
     batch_xs, batch_ys = mnist.train.next_batch(100)  # 随机取一百个练习值
-    sess.run(train_step, feed_dict={x: batch_xs, y_: batch_ys})  # 开始练习
+    print(sess.run((train_step, y), feed_dict={x: batch_xs, y_: batch_ys}))  # 开始练习
 
     print(sess.run(accuracy, feed_dict={x: mnist.test.images, y_: mnist.test.labels}))  # 打印准确率
