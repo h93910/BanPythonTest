@@ -104,12 +104,8 @@ def do_prediction(a_count, b_count, c_count, d_count, a, b, c, d):
 
 
 if __name__ == "__main__":
-    x_data = np.linspace(-1, 1, 300, dtype=np.float32)[:, np.newaxis]
-    noise = np.random.normal(0, 0.05, x_data.shape).astype(np.float32)
-    y_data = np.square(x_data) - 0.5 + noise
-
+    x_data = np.linspace(1, 100, 100).tolist()[2-100:]
     print(x_data)
-    print(y_data)
 
 if __name__ == "__main2__":
     init_data()

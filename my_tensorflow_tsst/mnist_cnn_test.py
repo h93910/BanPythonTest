@@ -73,11 +73,11 @@ train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)  # 用ADAM 优
 correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))  # 计算正确率
 
-save_path = "data/save_net_cnn.ckpt"
+save_path = "data/cnn/save_net_cnn.ckpt"
 saver = tf.train.Saver()
 
 sess = tf.InteractiveSession()
-if os.path.exists('data/checkpoint'):  # 判断模型是否存在
+if os.path.exists('data/cnn/checkpoint'):  # 判断模型是否存在
     # load date
     print("load data")
     saver.restore(sess, save_path)  # 存在就从模型中恢复变量
