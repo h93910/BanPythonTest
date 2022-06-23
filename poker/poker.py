@@ -194,3 +194,21 @@ class Poker:
                         s = 1
                     if s == 5:
                         return True, list(reversed(poker[i:i + 5]))
+
+    @staticmethod
+    def get_poker_from_string(s):
+        poker_set = []
+        plus = 0
+        for i in s.upper():
+            p = "DCHS".find(i)
+            if p == -1:  # 为数字
+                p = "TJQKA".find(i)
+                if p == -1:
+                    p = int(i)
+                else:
+                    p += 10
+                poker_set.append(p | (0x10 * plus))
+            else:
+                plus = p
+
+        return poker_set

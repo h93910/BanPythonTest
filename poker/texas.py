@@ -1,5 +1,7 @@
-from .texas_bot import TexasHoldemPokerBOT
-from .poker import Poker
+import sys
+
+from texas_bot import TexasHoldemPokerBOT
+from poker import Poker
 import random
 import time
 
@@ -294,8 +296,8 @@ class TexasHoldemPoker:
         else:
             win = 1
 
-        if win != 1:
-            return win
+        # if win != 1:
+        #     return win
         print("A:", end="")
         for i in set[0]:
             self.tool.print_show(i)
@@ -415,3 +417,8 @@ class TexasHoldemPoker:
         # for i in my_sort_poker(three):
         #     print_show(i)
         # print()
+
+if __name__ == "__main__":
+    t=TexasHoldemPoker(None)
+    for i in range(10000):
+        t.test()

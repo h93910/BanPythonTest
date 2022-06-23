@@ -1,6 +1,5 @@
-from .poker import Poker
+from poker import Poker
 import random
-import time
 
 
 class TexasHoldemPokerBOT:
@@ -269,7 +268,7 @@ class TexasHoldemPokerBOT:
         return operation
 
     @staticmethod
-    def win(public_cards, plays_cards, other_on_play_count):
+    def win(public_cards, plays_cards, other_on_play_count, cumulate=False):
         # count = self.C(50, 5 + 2 * other_on_play_count)
         count = 5000
 
@@ -280,6 +279,8 @@ class TexasHoldemPokerBOT:
             leftover.remove(i)
 
         win = 0
+        draw = 0
+        lose = 0
         for i in range(count):
             left = leftover.copy()
             communicate = public_cards.copy()
@@ -302,10 +303,9 @@ class TexasHoldemPokerBOT:
             pk_set = list()
             for j in range(len(all_players_card)):
                 player_combination = Poker.jugg_type(communicate + list(all_players_card[j]))
-                # print("%d:%s" % (j, self.card_type(player_combination)))
+                # print("%d:%s" % (j, TexasHoldemPoker.card_type(player_combination)))
                 pk_set.append(player_combination)
             pk_result_set = sorted(pk_set, key=lambda x: (-x[0], x[1]))
-            max_p = pk_result_set[-1]
             # print("max:%s" % self.card_type(max_p))
 
             # winners = []
@@ -314,11 +314,19 @@ class TexasHoldemPokerBOT:
             #         winners.append(j)
             # if len(winners) == 1 and winners[0] == 0:
             #     win += 1
-            if pk_set[0] == max_p:
-                win += 1
+            if pk_set[0] == pk_result_set[-1]:
+                if len(pk_set) > 1 and pk_set[0] == pk_result_set[-2]:
+                    draw += 1
+                else:
+                    win += 1
+            else:
+                lose += 1
 
         result = int(win / count * 10000)
-        return result
+        if cumulate is False:
+            return result
+        else:
+            return win, draw, lose
 
     def C(self, n, m):
         level = lambda x: 1 if x == 1 else x * level(x - 1)
