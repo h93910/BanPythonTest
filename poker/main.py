@@ -55,18 +55,52 @@ if __name__ == "__main__":
     print("\n公牌:")
     for i in pc:
         Poker.print_show(i)
+    print("")
+    poker = Poker()
+    texas = TexasHoldemPoker([])
+    poker.init_poker()
+    poker.eliminate_card(s)
+    poker.eliminate_card(pc)
+    round_set = poker.poker_set_round
     w = 0
     draw = 0
-    i = 1
-    while True:
-        w_t, draw_t, loss = TexasHoldemPokerBOT.win(pc, s, other, True)
-        w += w_t
-        draw += draw_t
-        win = w / 5000 / i * 10000
-        offer = draw / 5000 / i * 10000
-        if other > 2:
-            offer /= 2.5
-        else:
-            offer /= 2
-        print("win:%d draw:%d result:%f" % (w, draw, win + offer))
-        i += 1
+    i = 0
+    win_set = dict()
+    for a in range(0, len(round_set)):
+        for b in range(a + 1, len(round_set)):
+            comb = [round_set[a], round_set[b]]
+            r = texas.pk([pc + s, pc + comb])
+            if r == 1:  # 猜的牌赢
+                p_type, key = poker.jugg_type(pc + comb)
+                if win_set.get(p_type) is None:
+                    win_set[p_type] = []
+                win_set.get(p_type).append(comb)
+                w += 1
+            i += 1
+
+    card_type = ["同花顺", "四条", "葫芦", "同花", "顺子", "三条", "两对", "一对", "高牌"]
+    for key in win_set:
+        print("对方能赢的=== %s ===有：" % card_type[key])
+        for a in win_set[key]:
+            for b in a:
+                poker.print_show(b)
+            print(" | ",end="")
+        print()
+
+    print("对方可能的胜算: %d/%d=%f" % (w, i, w / i))
+    # # 以下为算胜率
+    # w = 0
+    # draw = 0
+    # i = 1
+    # while True:
+    #     w_t, draw_t, loss = TexasHoldemPokerBOT.win(pc, s, other, True)
+    #     w += w_t
+    #     draw += draw_t
+    #     win = w / 5000 / i * 10000
+    #     offer = draw / 5000 / i * 10000
+    #     if other > 2:
+    #         offer /= 2.5
+    #     else:
+    #         offer /= 2
+    #     print("win:%d draw:%d result:%f" % (w, draw, win + offer))
+    #     i += 1

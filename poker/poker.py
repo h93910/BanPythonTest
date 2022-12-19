@@ -11,12 +11,24 @@ class Poker:
         self.poker_set_round = self.poker_set.copy()
 
     def get_card(self, count):
+        '''
+        发牌
+        :param count: 发多少张
+        '''
         card = []
         for i in range(count):
             r = random.randint(0, len(self.poker_set_round) - 1)
             card.append(self.poker_set_round[r])
             del self.poker_set_round[r]
         return card
+
+    def eliminate_card(self, cards):
+        '''
+        剔除传入的牌
+        :param cards:要剔除的牌的十六进制的表达
+        '''
+        for i in cards:
+            self.poker_set_round.remove(i)
 
     @staticmethod
     def print_show(s):
@@ -60,15 +72,15 @@ class Poker:
             poker_set += [x | (0x10 * i) for x in [x for x in range(2, 15)]]
         return poker_set
 
-        # type 0  straight flush   royal flush
-        # 1 four of a kind
-        # 2 full house
-        # 3 flush
-        # 4 straight
-        # 5 three of a kind
-        # 6 two pairs
-        # 7  one pairs
-        # 8 hard card
+        # type 0  straight flush   royal flush　同花顺
+        # 1 four of a kind　四带一
+        # 2 full house　三带二
+        # 3 flush　同花
+        # 4 straight　顺子
+        # 5 three of a kind　三条
+        # 6 two pairs　两对
+        # 7  one pairs　一对
+        # 8 hard card　高牌
 
     @staticmethod
     def jugg_type(input_poker):
@@ -200,7 +212,7 @@ class Poker:
         poker_set = []
         plus = 0
         for i in s.upper():
-            p = "DCHS".find(i)
+            p = "DCHS".find(i)  # 方块　梅花　红心　黑桃
             if p == -1:  # 为数字
                 p = "TJQKA".find(i)
                 if p == -1:
