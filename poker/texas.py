@@ -134,7 +134,7 @@ class TexasHoldemPoker:
         while i != len(self.bankroll):
             position = (i + bet_position) % len(self.bankroll)
             if self.on_play[position] is False or self.bankroll[position][1] == single_pool[position] or \
-                            self.bankroll[position][1] == 0:  # remove fold player or 0 money player
+                    self.bankroll[position][1] == 0:  # remove fold player or 0 money player
                 i += 1
                 continue
             if len([x for x in self.on_play if x]) == 1:  # only one man left, dont need to continue now
@@ -302,13 +302,13 @@ class TexasHoldemPoker:
         for i in set[0]:
             self.tool.print_show(i)
         print(result, end=" ")
-        print(" " + self.card_type(result) + " " + ("win" if win == -1 else "") + ("draw" if win == 0 else""))
+        print(" " + self.card_type(result) + " " + ("win" if win == -1 else "") + ("draw" if win == 0 else ""))
 
         print("B:", end="")
         for i in set[1]:
             self.tool.print_show(i)
         print(result2, end=" ")
-        print(" " + self.card_type(result2) + " " + ("win" if win == 1 else "") + ("draw" if win == 0 else""))
+        print(" " + self.card_type(result2) + " " + ("win" if win == 1 else "") + ("draw" if win == 0 else ""))
 
         print()
 
@@ -351,6 +351,61 @@ class TexasHoldemPoker:
                 s += self.tool.switch_poker_number(i)
         return s
 
+    def string_range_combine(self, s):
+        def get_combine(i):
+            r = []
+            if len(i) == 2 or len(i) == 3:
+                for a in self.tool.get_poker_all_color(i[0]):
+                    for b in self.tool.get_poker_all_color(i[1]):
+                        if a != b:  # 去除同一张牌的组合
+                            c = sorted((a, b))
+                            if c not in r:  # 去除就前后顺序不同的组合
+                                r.append(c)
+                if len(i) == 3 and "s" in i or "o" in i:
+                    tag = i[2] == "s"  # 只留相同花色或留不同花色
+                    r = list(filter(lambda x: (x[0] >> 4 == x[1] >> 4) is tag, r))
+                return r
+
+        result = []
+        for i in s.replace(' ', '').split(','):
+            if len(i) == 2:
+                result.extend(get_combine(i))
+            elif len(i) == 3:
+                if "+" not in i:
+                    result.extend(get_combine(i))
+                else:
+                    if i[0] == i[1]:  # 所有以上的口袋对子
+                        pair = [x * 2 for x in self.tool.get_poker_plus_to(i[0], 'A')]
+                        for p in pair:
+                            result.extend(get_combine(p))
+                    else:  # T6+ : 从T6o到T9o所有非同花的T以及从T6s到T9s所有同花的T, 例如T9s, T8s, T7s, T6s, T9o, T8o, T7o, T6o
+                        comb = [i[0] + x for x in self.tool.get_poker_plus_to(i[1], i[0])][:-1]  # 去尾
+                        for p in comb:
+                            result.extend(get_combine(p))
+            elif len(i) == 4:  # T6o+
+                comb = [i[0] + x + i[2] for x in self.tool.get_poker_plus_to(i[1], i[0])][:-1]  # 去尾
+                for p in comb:
+                    result.extend(get_combine(p))
+            elif '-' in i:
+                index = i.index('-')
+                if i[0] == i[index + 1]:  # T7s-T3s T7o-T3o T7-T3
+                    r = self.tool.get_poker_plus_to(i[index + 2], i[1])
+                    if 's' in i or 'o' in i:
+                        comb = [i[0] + x + i[2] for x in r]
+                    else:
+                        comb = [i[0] + x for x in r]
+                else:  # KJs-86s : 从86s到KJs间隔一张的同花牌, 例如KJs, QTs, J9s, T8s, 97s, 86s
+                    r = self.tool.get_poker_plus_to(i[index + 1], i[0])
+                    r2 = self.tool.get_poker_plus_to(i[index + 2], i[1])
+                    if 's' in i or 'o' in i:
+                        comb = [r[x] + r2[x] + i[2] for x in range(len(r))]
+                    else:
+                        comb = [r[x] + r2[x] for x in range(len(r))]
+                for p in comb:
+                    result.extend(get_combine(p))
+        print(result)
+        return result
+
     def test(self):
         p = []
         for i in range(0, 4):
@@ -390,7 +445,6 @@ class TexasHoldemPoker:
 
         return self.pk((A, B))
 
-
         # p2 = p.copy()
         # one = []
         # two = []
@@ -418,7 +472,17 @@ class TexasHoldemPoker:
         #     print_show(i)
         # print()
 
+
 if __name__ == "__main__":
-    t=TexasHoldemPoker(None)
-    for i in range(10000):
-        t.test()
+    t = TexasHoldemPoker(None)
+    # 　测试胜败判定
+    # for i in range(10000):
+    #     t.test()
+
+    # 牌池范围测试
+    pp = t.string_range_combine("99+, AJs+, KQs, AQo+")
+    print(len(pp))
+    for oo in pp:
+        for jj in oo:
+            t.tool.print_show(jj)
+        print()
