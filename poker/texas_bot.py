@@ -1,13 +1,14 @@
 import random
 from itertools import combinations, product
 import numpy as np
-from dataclasses import dataclass
-from PIL import ImageGrab
+from dataclasses import dataclass, field
+from PIL import ImageGrab, Image
 import win32con, win32gui
 from ctypes import wintypes
 import ctypes
 import pytesseract
 import re
+import cv2
 
 from poker import Poker
 
@@ -530,6 +531,11 @@ class TexasHoldemPokerBOT:
         #     return win, draw, lose
 
     def get_window_pos(self, hwnd):
+        '''
+            获取窗口的坐标
+        :param hwnd:
+        :return:
+        '''
         try:
             f = ctypes.windll.dwmapi.DwmGetWindowAttribute
             rect = ctypes.wintypes.RECT()
@@ -543,25 +549,61 @@ class TexasHoldemPokerBOT:
         except WindowsError as e:
             raise e
 
+    def get_card_info_from_pic(self, region):
+        config = r'-c tessedit_char_whitelist=0123456789JQKAdchs --psm 6 -l poker'
+        result = pytesseract.image_to_string(region, config=config)
+        if len(result) == 0:
+            return None
+        card = result.split('\n')
+        if len(card) != 3:
+            return None
+        if card[0][0:2] == '10':
+            number = "T"
+        else:
+            number = card[0][0]
+        return number + card[1][0]
+
     def get_gg_info(self, pic):
+        gg = GGGameInfo()
+
         w, h = pic.size
         # 查自己的池
         region = pic.crop((int(w * 0.44), int(h * 0.905), int(w * 0.565), int(h * 0.942)))
         # 识别文字中的时间，用于保存文字名
         text = pytesseract.image_to_string(region)
-        pattern = re.compile(r'(.)(\d{1,3}[,\d{3}]*[/.\d*]?)')
-        my_pool = re.search(pattern, text).group()
-        print(f'池: {my_pool}')
+        pattern = re.compile(r'(.)(\d{1,3}[,\d{3}]*.\d+)')
+        gg.my_pool = re.search(pattern, text).group()
+
+        # 查自己的手牌
+        card1 = pic.crop((int(w * 0.44), int(h * 0.748), int(w * 0.469), int(h * 0.828))).convert('RGBA').rotate(-10)
+        card2 = pic.crop((int(w * 0.49), int(h * 0.74), int(w * 0.519), int(h * 0.821)))
+        card1_result = self.get_card_info_from_pic(card1)
+        card2_result = self.get_card_info_from_pic(card2)
+        if card1_result is not None:
+            gg.my_cards = card1_result + card2_result
+        # 公牌
+        card1 = pic.crop((int(w * 0.295), int(h * 0.415), int(w * 0.325), int(h * 0.493)))
+        card2 = pic.crop((int(w * 0.38), int(h * 0.415), int(w * 0.41), int(h * 0.493)))
+        card3 = pic.crop((int(w * 0.467), int(h * 0.415), int(w * 0.495), int(h * 0.493)))
+        card4 = pic.crop((int(w * 0.552), int(h * 0.415), int(w * 0.580), int(h * 0.493)))
+        card5 = pic.crop((int(w * 0.635), int(h * 0.415), int(w * 0.662), int(h * 0.493)))
+        l = [self.get_card_info_from_pic(x) for x in [card1, card2, card3, card4, card5]]
+        gg.public_cards = l
+
         # 底池
-        region = pic.crop((int(w * 0.42), int(h * 0.355), int(w * 0.60), int(h * 0.39)))
+        region = pic.crop((int(w * 0.39), int(h * 0.368), int(w * 0.65), int(h * 0.405)))
         # 识别文字中的时间，用于保存文字名
-        text = pytesseract.image_to_string(region)
-        pattern = re.compile(r'\d{1,3}(,\d{3})*')
-        pool = re.search(pattern, text).group()
-        print(f'底池: {pool}')
+        config = r'--psm 6 -l eng'
+        text = pytesseract.image_to_string(region, config=config)
+        pattern = re.compile(r'(.)(\d{1,3}[,\d{3}]*.\d+)')
+        gg.pool = re.search(pattern, text).group()
+
+        print(gg)
 
 
 @dataclass
 class GGGameInfo:
-    name: str
-    age: int
+    my_pool: float = 0.0
+    my_cards: str = ""
+    public_cards: list = None
+    pool: float = 0.0

@@ -148,7 +148,7 @@ if __name__ == "__main__":
     from ctypes import wintypes
     import ctypes
 
-    sample = Image.open('pk.jpg')
+    sample = Image.open('poker5.jpg')
     bot=TexasHoldemPokerBOT()
     bot.get_gg_info(sample)
 
