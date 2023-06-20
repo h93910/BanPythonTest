@@ -556,12 +556,17 @@ class TexasHoldemPokerBOT:
             return None
         card = result.split('\n')
         if len(card) != 3:
+            n = result.replace('\n', '')
+            region.save(f'{n}_{random.randint(0, 50)}.png')
             return None
         if card[0][0:2] == '10':
             number = "T"
         else:
             number = card[0][0]
-        return number + card[1][0]
+        back = number + card[1][0]
+        if any(c in back for c in 'dchs'):
+            return back
+        return None
 
     def get_gg_info(self, pic):
         gg = GGGameInfo()
@@ -572,7 +577,9 @@ class TexasHoldemPokerBOT:
         # 识别文字中的时间，用于保存文字名
         text = pytesseract.image_to_string(region)
         pattern = re.compile(r'(.)(\d{1,3}[,\d{3}]*.\d+)')
-        gg.my_pool = re.search(pattern, text).group()
+        search = re.search(pattern, text)
+        if search is not None:
+            gg.my_pool = float(search.group(2).replace(',', ''))
 
         # 查自己的手牌
         card1 = pic.crop((int(w * 0.44), int(h * 0.748), int(w * 0.469), int(h * 0.828))).convert('RGBA').rotate(-10)
@@ -596,9 +603,10 @@ class TexasHoldemPokerBOT:
         config = r'--psm 6 -l eng'
         text = pytesseract.image_to_string(region, config=config)
         pattern = re.compile(r'(.)(\d{1,3}[,\d{3}]*.\d+)')
-        gg.pool = re.search(pattern, text).group()
+        gg.pool = float(re.search(pattern, text).group(2).replace(',', ''))
 
         print(gg)
+        return gg
 
 
 @dataclass

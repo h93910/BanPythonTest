@@ -143,40 +143,36 @@ if __name__ == "__main__2":
         i += 1
 
 if __name__ == "__main__":
-    from PIL import ImageGrab,Image
+    from PIL import ImageGrab, Image
     import win32con, win32gui
     from ctypes import wintypes
     import ctypes
+    import re
 
-    sample = Image.open('poker5.jpg')
-    bot=TexasHoldemPokerBOT()
-    bot.get_gg_info(sample)
+    bot = TexasHoldemPokerBOT()
+    w = False
+    if w:
+        # 取所有的顶级窗口
+        hWndList = []
+        win32gui.EnumWindows(lambda hWnd, param: param.append(hWnd), hWndList)
+        title = "绿色"
+        hwnd = 0
+        for h in hWndList:
+            t = win32gui.GetWindowText(h)
+            if title in t:
+                hwnd = h
+                break
 
-    # def get_window_pos(hwnd):
-    #     try:
-    #         f = ctypes.windll.dwmapi.DwmGetWindowAttribute
-    #         rect = ctypes.wintypes.RECT()
-    #         DWMWA_EXTENDED_FRAME_BOUNDS = 9
-    #         f(ctypes.wintypes.HWND(hwnd),
-    #           ctypes.wintypes.DWORD(DWMWA_EXTENDED_FRAME_BOUNDS),
-    #           ctypes.byref(rect),
-    #           ctypes.sizeof(rect)
-    #           )
-    #         return rect.left, rect.top, rect.right, rect.bottom
-    #     except WindowsError as e:
-    #         raise e
-    #
-    #
-    # hwnd = win32gui.FindWindow("notepad", None)
-    # print(hwnd)
-    # # win32gui.SetForegroundWindow(hwnd)  # 激活到前台
-    # # time.sleep(1)
-    # # 截取窗口并保存
-    # rect = get_window_pos(hwnd)
-    # # 发送还原最小化窗口的信息
-    # win32gui.SendMessage(hwnd, win32con.WM_SYSCOMMAND, win32con.SC_RESTORE, 0)
-    # # 将目标窗口移到最前面
-    # win32gui.SetForegroundWindow(hwnd)
-    #
-    # im = ImageGrab.grab(rect)
-    # im.show()
+        # 截取窗口并保存
+        rect = bot.get_window_pos(hwnd)
+        # 发送还原最小化窗口的信息
+        win32gui.SendMessage(hwnd, win32con.WM_SYSCOMMAND, win32con.SC_RESTORE, 0)
+        # 将目标窗口移到最前面
+        win32gui.SetForegroundWindow(hwnd)
+
+        im = ImageGrab.grab(rect)
+    else:
+        im = Image.open('poker3.jpg')
+    gg = bot.get_gg_info(im)
+    if w:
+        im.save(str(gg) + '.jpg')
