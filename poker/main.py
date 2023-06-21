@@ -148,31 +148,58 @@ if __name__ == "__main__":
     from ctypes import wintypes
     import ctypes
     import re
+    import pyautogui
 
+    """
+        ALL IN
+    """
+    texas = TexasHoldemPoker([])
     bot = TexasHoldemPokerBOT()
     w = False
-    if w:
-        # 取所有的顶级窗口
-        hWndList = []
-        win32gui.EnumWindows(lambda hWnd, param: param.append(hWnd), hWndList)
-        title = "绿色"
+    while True:
         hwnd = 0
-        for h in hWndList:
-            t = win32gui.GetWindowText(h)
-            if title in t:
-                hwnd = h
-                break
+        rect = None
+        if w:
+            # 取所有的顶级窗口
+            hWndList = []
+            win32gui.EnumWindows(lambda hWnd, param: param.append(hWnd), hWndList)
+            title = "绿色"
+            for h in hWndList:
+                t = win32gui.GetWindowText(h)
+                if title in t:
+                    hwnd = h
+                    break
 
-        # 截取窗口并保存
-        rect = bot.get_window_pos(hwnd)
+            # 截取窗口并保存
+            rect = bot.get_window_pos(hwnd)
+            # 发送还原最小化窗口的信息
+            win32gui.SendMessage(hwnd, win32con.WM_SYSCOMMAND, win32con.SC_RESTORE, 0)
+            # 将目标窗口移到最前面
+            win32gui.SetForegroundWindow(hwnd)
+
+            im = ImageGrab.grab(rect)
+        else:
+            im = Image.open(
+                """all in.jpg""")
+        gg = bot.get_gg_info(im)
+        if gg.my_cards == '':  # 没查到自己没有牌,等两秒再重新查
+            print('未查询到自己的牌,休息两秒')
+            time.sleep(2)
+            continue
+        # pc = Poker.get_poker_from_string(''.join(gg.public_cards))
+        play_range = [[gg.my_cards],
+                      texas.string_range_combine("33+,A2s+,K2s+,Q6s+,J7s+,T8s+,98s,87s,76s,A2o+,K7o+,Q9o+,J9o+")]
+        win = bot.win_range_monte_carlo([], play_range)
+
         # 发送还原最小化窗口的信息
         win32gui.SendMessage(hwnd, win32con.WM_SYSCOMMAND, win32con.SC_RESTORE, 0)
         # 将目标窗口移到最前面
         win32gui.SetForegroundWindow(hwnd)
+        if win > 55:  # call
+            bot.click(0.442, 0.550)
+            pass
+        else:  # fold
+            pass
 
-        im = ImageGrab.grab(rect)
-    else:
-        im = Image.open('poker3.jpg')
-    gg = bot.get_gg_info(im)
-    if w:
-        im.save(str(gg) + '.jpg')
+        if w:
+            im.save(str(gg) + '.jpg')

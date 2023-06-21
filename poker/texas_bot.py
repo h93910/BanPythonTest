@@ -340,14 +340,14 @@ class TexasHoldemPokerBOT:
             return win, draw, lose
 
     @staticmethod
-    def win_range_monte_carlo(public_cards, plays_cards):
+    def win_range_monte_carlo(public_cards, plays_cards, count=20000):
         '''
-        按范围的蒙特卡罗猜胜率
+        按范围的蒙特卡罗猜胜率万分比
         :param public_cards: 公牌数组　[]
         :param plays_cards:  选手的卡池选择范围或指定牌数组 [[一号玩家范围],[二号玩家　范围]]　如玩家范围为空数组则为全随机
+        :param count: 查多少轮 默认三十万
         :return:
         '''
-        count = 30000000
 
         leftover = Poker.get_poker_set()
         for i in public_cards:  # 先移除公牌
@@ -429,10 +429,7 @@ class TexasHoldemPokerBOT:
         print(f'result:{result}')
         print(f'win:{(np.array(win)) / count * 10000}')
         print(f'draw:{(np.array(draw)) / count * 10000}')
-        # if cumulate is False:
-        #     return result
-        # else:
-        #     return win, draw, lose
+        return result
 
     @staticmethod
     def win_range_exhaustion(public_cards, plays_cards):
@@ -550,21 +547,21 @@ class TexasHoldemPokerBOT:
             raise e
 
     def get_card_info_from_pic(self, region):
-        config = r'-c tessedit_char_whitelist=0123456789JQKAdchs --psm 6 -l poker'
+        config = r'-c tessedit_char_whitelist=23456789TJQKAdchs --psm 6 -l poker'
         result = pytesseract.image_to_string(region, config=config)
         if len(result) == 0:
             return None
         card = result.split('\n')
         if len(card) != 3:
             n = result.replace('\n', '')
-            region.save(f'{n}_{random.randint(0, 50)}.png')
+            region.save(f'{n}_{random.randint(0, 5)}.png')
             return None
         if card[0][0:2] == '10':
             number = "T"
         else:
-            number = card[0][0]
+            number = card[0].strip()[0]
         back = number + card[1][0]
-        if any(c in back for c in 'dchs'):
+        if any(c in back[1] for c in 'dchs'):
             return back
         return None
 
@@ -582,14 +579,14 @@ class TexasHoldemPokerBOT:
             gg.my_pool = float(search.group(2).replace(',', ''))
 
         # 查自己的手牌
-        card1 = pic.crop((int(w * 0.44), int(h * 0.748), int(w * 0.469), int(h * 0.828))).convert('RGBA').rotate(-10)
+        card1 = pic.crop((int(w * 0.44), int(h * 0.748), int(w * 0.469), int(h * 0.828))).convert('RGBA').rotate(-8)
         card2 = pic.crop((int(w * 0.49), int(h * 0.74), int(w * 0.519), int(h * 0.821)))
         card1_result = self.get_card_info_from_pic(card1)
         card2_result = self.get_card_info_from_pic(card2)
         if card1_result is not None:
             gg.my_cards = card1_result + card2_result
         # 公牌
-        card1 = pic.crop((int(w * 0.295), int(h * 0.415), int(w * 0.325), int(h * 0.493)))
+        card1 = pic.crop((int(w * 0.298), int(h * 0.415), int(w * 0.322), int(h * 0.493)))
         card2 = pic.crop((int(w * 0.38), int(h * 0.415), int(w * 0.41), int(h * 0.493)))
         card3 = pic.crop((int(w * 0.467), int(h * 0.415), int(w * 0.495), int(h * 0.493)))
         card4 = pic.crop((int(w * 0.552), int(h * 0.415), int(w * 0.580), int(h * 0.493)))
@@ -607,6 +604,10 @@ class TexasHoldemPokerBOT:
 
         print(gg)
         return gg
+
+    def click(self, x, y):
+
+        pass
 
 
 @dataclass
