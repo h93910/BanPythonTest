@@ -1,4 +1,6 @@
+import datetime
 import random
+import time
 from itertools import combinations, product
 import numpy as np
 from dataclasses import dataclass, field
@@ -8,7 +10,8 @@ from ctypes import wintypes
 import ctypes
 import pytesseract
 import re
-import cv2
+import pyperclip as pc
+import pyautogui
 
 from poker import Poker
 
@@ -546,23 +549,35 @@ class TexasHoldemPokerBOT:
         except WindowsError as e:
             raise e
 
-    def get_card_info_from_pic(self, region):
+    def get_card_info_from_pic(self, region, recheck=0, temp=''):
         config = r'-c tessedit_char_whitelist=23456789TJQKAdchs --psm 6 -l poker'
         result = pytesseract.image_to_string(region, config=config)
+        result2 = pytesseract.image_to_string(region.convert('L'), config=config)
         if len(result) == 0:
             return None
         card = result.split('\n')
         if len(card) != 3:
-            n = result.replace('\n', '')
-            region.save(f'{n}_{random.randint(0, 5)}.png')
-            return None
+            card = result2.split('\n')
+            if len(card) != 3:  # 试个换灰度的
+                n = result.replace('\n', '')
+                # region.save(f'{n}_{random.randint(0, 5)}.png')
+                return None
         if card[0][0:2] == '10':
             number = "T"
         else:
             number = card[0].strip()[0]
         back = number + card[1][0]
         if any(c in back[1] for c in 'dchs'):
-            return back
+            if recheck == 0:
+                return self.get_card_info_from_pic(region, recheck=recheck + 1, temp=back)
+            else:
+                if temp == back:
+                    if recheck == 2:  # 检查两次
+                        return back
+                    else:
+                        return self.get_card_info_from_pic(region, recheck=recheck + 1, temp=back)
+                else:  # 不等就重新
+                    self.get_card_info_from_pic(region)
         return None
 
     def get_gg_info(self, pic):
@@ -576,14 +591,14 @@ class TexasHoldemPokerBOT:
         pattern = re.compile(r'(.)(\d{1,3}[,\d{3}]*.\d+)')
         search = re.search(pattern, text)
         if search is not None:
-            gg.my_pool = float(search.group(2).replace(',', ''))
+            gg.my_pool = float(search.group(2).replace(' ', '').replace(',', ''))
 
         # 查自己的手牌
-        card1 = pic.crop((int(w * 0.44), int(h * 0.748), int(w * 0.469), int(h * 0.828))).convert('RGBA').rotate(-8)
-        card2 = pic.crop((int(w * 0.49), int(h * 0.74), int(w * 0.519), int(h * 0.821)))
+        card1 = pic.rotate(-5).crop((int(w * 0.421), int(h * 0.74), int(w * 0.448), int(h * 0.814))).convert('RGBA')
+        card2 = pic.crop((int(w * 0.49), int(h * 0.74), int(w * 0.519), int(h * 0.821))).convert('RGBA').rotate(3)
         card1_result = self.get_card_info_from_pic(card1)
         card2_result = self.get_card_info_from_pic(card2)
-        if card1_result is not None:
+        if card1_result is not None and card1_result is not None:
             gg.my_cards = card1_result + card2_result
         # 公牌
         card1 = pic.crop((int(w * 0.298), int(h * 0.415), int(w * 0.322), int(h * 0.493)))
@@ -600,14 +615,98 @@ class TexasHoldemPokerBOT:
         config = r'--psm 6 -l eng'
         text = pytesseract.image_to_string(region, config=config)
         pattern = re.compile(r'(.)(\d{1,3}[,\d{3}]*.\d+)')
-        gg.pool = float(re.search(pattern, text).group(2).replace(',', ''))
-
-        print(gg)
+        search = re.search(pattern, text)
+        if search is not None:
+            gg.pool = float(search.group(2).replace(' ', '').replace(',', ''))
         return gg
 
-    def click(self, x, y):
+    def click_percent(self, xp, yp, rect):
+        '''
+            点击窗口的百分之几的位置
+        :param xp: X的百分比
+        :param yp: Y的百分比
+        :param rect: 窗口的坐标信息
+        :return:
+        '''
+        x = (rect[2] - rect[0]) * xp + rect[0]
+        y = (rect[3] - rect[1]) * yp + rect[1]
+        pyautogui.leftClick(x, y)
 
-        pass
+    def click_text(self, pic, text, rect_p, rect):
+        '''
+            点击窗口某个范围内的文本
+        :param pic: 图片
+        :param text: 文字
+        :param rect_p: 某个范围内 ，传参为元组 ()
+        :param rect: 窗口坐标信息
+        :return:
+        '''
+        w, h = pic.size
+        rect_xy = (int(w * rect_p[0]), int(h * rect_p[1]), int(w * rect_p[2]), int(h * rect_p[3]))
+        region = pic.crop(rect_xy)
+
+        config = r'--psm 6 -l chi_sim'
+        t = pytesseract.image_to_string(region, config=config)
+        if text in t:
+            pyautogui.leftClick(int(rect[0] + (rect_xy[2] + rect_xy[0]) / 2),
+                                int(rect[1] + (rect_xy[3] + rect_xy[1]) / 2))
+        else:
+            print(f'没有找到:{text}')
+
+    def find_proccess(self, title):
+        # 取所有的顶级窗口
+        result = []
+        hWndList = []
+        win32gui.EnumWindows(lambda hWnd, param: param.append(hWnd), hWndList)
+        for h in hWndList:
+            t = win32gui.GetWindowText(h)
+            if title in t:
+                result.append(h)
+        return result
+
+    def win_from_pokerStra(self, my_cards):
+        hwnd = self.find_proccess('PokerStra')[0]
+        rect = self.get_window_pos(hwnd)
+
+        # 发送还原最小化窗口的信息
+        win32gui.SendMessage(hwnd, win32con.WM_SYSCOMMAND, win32con.SC_RESTORE, 0)
+        # 将目标窗口移到最前面
+        win32gui.SetForegroundWindow(hwnd)
+        pc.copy(my_cards)
+        # 先清
+        pyautogui.leftClick(rect[0] + 171, rect[1] + 278)
+        pyautogui.leftClick(rect[0] + 216, rect[1] + 278)
+        pyautogui.keyDown('ctrl')
+        pyautogui.keyDown('v')
+        pyautogui.keyUp('ctrl')
+        pyautogui.keyUp('v')
+        pyautogui.leftClick(rect[2] - 60, rect[1] + 382)
+        # 双击
+        pyautogui.leftClick(rect[2] - 30, rect[1] + 278)
+        pyautogui.leftClick(rect[2] - 30, rect[1] + 278)
+        pyautogui.keyDown('ctrl')
+        pyautogui.keyDown('c')
+        pyautogui.keyUp('ctrl')
+        pyautogui.keyUp('c')
+
+        return float(pc.paste()[:-1])
+
+    def recycle_coin(self, rect):
+        '''
+            回收金币
+        :param rect:
+        :return:
+        '''
+        # 点回收
+        self.click_percent(0.939, 0.093, rect)
+        pyautogui.sleep(1)
+        # 再截图找确定按钮
+        im = ImageGrab.grab(rect)
+        self.click_text(im, '确定', (0.374, 0.78, 0.454, 0.82), rect)
+        pyautogui.sleep(0.5)
+        self.click_text(im, '确定', (0.374, 0.78, 0.454, 0.82), rect)
+        t = datetime.datetime.now()
+        print(f'=========={str(t)}==========\n\n回收金币成功\n\n====================')
 
 
 @dataclass

@@ -1,3 +1,4 @@
+import datetime
 import getopt
 import time
 
@@ -150,56 +151,73 @@ if __name__ == "__main__":
     import re
     import pyautogui
 
+
+    def my_print(s):
+        log = False
+        if log:
+            print(s)
+
+
     """
         ALL IN
     """
     texas = TexasHoldemPoker([])
     bot = TexasHoldemPokerBOT()
-    w = False
+    w = True
     while True:
         hwnd = 0
         rect = None
         if w:
-            # 取所有的顶级窗口
-            hWndList = []
-            win32gui.EnumWindows(lambda hWnd, param: param.append(hWnd), hWndList)
-            title = "绿色"
-            for h in hWndList:
-                t = win32gui.GetWindowText(h)
-                if title in t:
-                    hwnd = h
-                    break
+            hwnd_set = bot.find_proccess('色')
 
-            # 截取窗口并保存
-            rect = bot.get_window_pos(hwnd)
-            # 发送还原最小化窗口的信息
-            win32gui.SendMessage(hwnd, win32con.WM_SYSCOMMAND, win32con.SC_RESTORE, 0)
-            # 将目标窗口移到最前面
-            win32gui.SetForegroundWindow(hwnd)
+            for hwnd in hwnd_set:
+                # 截取窗口并保存
+                rect = bot.get_window_pos(hwnd)
+                # 发送还原最小化窗口的信息
+                win32gui.SendMessage(hwnd, win32con.WM_SYSCOMMAND, win32con.SC_RESTORE, 0)
+                # 将目标窗口移到最前面
+                win32gui.SetForegroundWindow(hwnd)
 
-            im = ImageGrab.grab(rect)
+                im = ImageGrab.grab(rect)
+                try:
+                    gg = bot.get_gg_info(im)
+                    my_print(gg)
+                except Exception as e:
+                    print(e)
+                    continue
+                if gg.my_pool > 150000:
+                    bot.recycle_coin(rect)
+                if gg.my_cards == '':  # 没查到自己没有牌,等两秒再重新查
+                    my_print('未查询到自己的牌,休息两秒')
+                    bot.click_percent(0.42, 0.63, rect)
+                    continue
+
+                # pc = Poker.get_poker_from_string(''.join(gg.public_cards))
+                # play_range = [[gg.my_cards],
+                #               texas.string_range_combine("33+,A2s+,K2s+,Q6s+,J7s+,T8s+,98s,87s,76s,A2o+,K7o+,Q9o+,J9o+")]
+                # win = bot.win_range_monte_carlo([], play_range, 10000)[0]
+                try:
+                    win = bot.win_from_pokerStra(gg.my_cards)
+                except Exception as e:
+                    my_print('没复制到结果')
+                    continue
+
+                if rect is None or w is False:
+                    my_print('没取到窗口的rect')
+                    continue
+                # 发送还原最小化窗口的信息
+                win32gui.SendMessage(hwnd, win32con.WM_SYSCOMMAND, win32con.SC_RESTORE, 0)
+                # 将目标窗口移到最前面
+                win32gui.SetForegroundWindow(hwnd)
+                if win > 45:  # call
+                    bot.click_text(im, '全押', (0.866, 0.875, 0.945, 0.922), rect)
+                else:  # fold
+                    bot.click_text(im, '弃牌', (0.698, 0.876, 0.773, 0.927), rect)
+                # if w:
+                #     im.save(str(gg) + '.jpg')
         else:
             im = Image.open(
-                """all in.jpg""")
-        gg = bot.get_gg_info(im)
-        if gg.my_cards == '':  # 没查到自己没有牌,等两秒再重新查
-            print('未查询到自己的牌,休息两秒')
-            time.sleep(2)
-            continue
-        # pc = Poker.get_poker_from_string(''.join(gg.public_cards))
-        play_range = [[gg.my_cards],
-                      texas.string_range_combine("33+,A2s+,K2s+,Q6s+,J7s+,T8s+,98s,87s,76s,A2o+,K7o+,Q9o+,J9o+")]
-        win = bot.win_range_monte_carlo([], play_range)
+                """GGGameInfo(my_pool=9120.0, my_cards='8c5d', public_cards=[None, None, None, None, None], pool=0.0).jpg""")
+            # 截取窗口并保存
 
-        # 发送还原最小化窗口的信息
-        win32gui.SendMessage(hwnd, win32con.WM_SYSCOMMAND, win32con.SC_RESTORE, 0)
-        # 将目标窗口移到最前面
-        win32gui.SetForegroundWindow(hwnd)
-        if win > 55:  # call
-            bot.click(0.442, 0.550)
-            pass
-        else:  # fold
-            pass
-
-        if w:
-            im.save(str(gg) + '.jpg')
+            bot.click_text(im, '弃牌', (0.698, 0.876, 0.773, 0.927), (100, 100, 500, 500))
