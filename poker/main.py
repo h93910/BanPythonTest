@@ -161,8 +161,11 @@ if __name__ == "__main__":
     """
         ALL IN
     """
+    card_runners__open_raising_chart_bu = '22+,A2s+,K2s+,Q5s+,J7s+,T8s+,97s+,86s+,75s+,65s,A3o+,K9o+,Q9o+,J9o+,T8o+,98o'
+
     texas = TexasHoldemPoker([])
     bot = TexasHoldemPokerBOT()
+    my_range = texas.string_range_combine(card_runners__open_raising_chart_bu)
     w = True
     while True:
         hwnd = 0
@@ -192,15 +195,13 @@ if __name__ == "__main__":
                     bot.click_percent(0.42, 0.63, rect)
                     continue
 
-                # pc = Poker.get_poker_from_string(''.join(gg.public_cards))
-                # play_range = [[gg.my_cards],
-                #               texas.string_range_combine("33+,A2s+,K2s+,Q6s+,J7s+,T8s+,98s,87s,76s,A2o+,K7o+,Q9o+,J9o+")]
-                # win = bot.win_range_monte_carlo([], play_range, 10000)[0]
-                try:
-                    win = bot.win_from_pokerStra(gg.my_cards)
-                except Exception as e:
-                    my_print('没复制到结果')
-                    continue
+                # 点pokerStra
+                # try:
+                #     win = bot.win_from_pokerStra(gg.my_cards)
+                # except Exception as e:
+                #     my_print('没复制到结果')
+                #     continue
+                my = sorted(Poker.get_poker_from_string(gg.my_cards))
 
                 if rect is None or w is False:
                     my_print('没取到窗口的rect')
@@ -209,7 +210,7 @@ if __name__ == "__main__":
                 win32gui.SendMessage(hwnd, win32con.WM_SYSCOMMAND, win32con.SC_RESTORE, 0)
                 # 将目标窗口移到最前面
                 win32gui.SetForegroundWindow(hwnd)
-                if win > 45:  # call
+                if my in my_range:  # call
                     bot.click_text(im, '全押', (0.866, 0.875, 0.945, 0.922), rect)
                 else:  # fold
                     bot.click_text(im, '弃牌', (0.698, 0.876, 0.773, 0.927), rect)
@@ -217,7 +218,9 @@ if __name__ == "__main__":
                 #     im.save(str(gg) + '.jpg')
         else:
             im = Image.open(
-                """GGGameInfo(my_pool=9120.0, my_cards='8c5d', public_cards=[None, None, None, None, None], pool=0.0).jpg""")
+                """poker23.jpg""")
             # 截取窗口并保存
-
-            bot.click_text(im, '弃牌', (0.698, 0.876, 0.773, 0.927), (100, 100, 500, 500))
+            # bot.click_text(im, '弃牌', (0.698, 0.876, 0.773, 0.927), (100, 100, 500 500))
+            gg = bot.get_gg_info(im)
+            my = sorted(Poker.get_poker_from_string(gg.my_cards))
+            print(gg)
