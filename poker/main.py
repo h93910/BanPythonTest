@@ -162,16 +162,20 @@ if __name__ == "__main__":
         ALL IN
     """
     card_runners__open_raising_chart_bu = '22+,A2s+,K2s+,Q5s+,J7s+,T8s+,97s+,86s+,75s+,65s,A3o+,K9o+,Q9o+,J9o+,T8o+,98o'
+    win_45_orc_bu= '22+,A2s+,K8s+,QTs+,A2o+,KTo+,QJo'
 
     texas = TexasHoldemPoker([])
     bot = TexasHoldemPokerBOT()
-    my_range = texas.string_range_combine(card_runners__open_raising_chart_bu)
+    my_range = texas.string_range_combine(win_45_orc_bu)
+    t = datetime.datetime.now()
+    hwnd_set = bot.find_proccess('色')
+    print(datetime.datetime.now() - t)
+
     w = True
     while True:
         hwnd = 0
         rect = None
         if w:
-            hwnd_set = bot.find_proccess('色')
 
             for hwnd in hwnd_set:
                 # 截取窗口并保存
@@ -191,7 +195,7 @@ if __name__ == "__main__":
                 if gg.my_pool > 150000:
                     bot.recycle_coin(rect)
                 if gg.my_cards == '':  # 没查到自己没有牌,等两秒再重新查
-                    my_print('未查询到自己的牌,休息两秒')
+                    my_print('未查询到自己的牌')
                     bot.click_percent(0.42, 0.63, rect)
                     continue
 
@@ -206,8 +210,6 @@ if __name__ == "__main__":
                 if rect is None or w is False:
                     my_print('没取到窗口的rect')
                     continue
-                # 发送还原最小化窗口的信息
-                win32gui.SendMessage(hwnd, win32con.WM_SYSCOMMAND, win32con.SC_RESTORE, 0)
                 # 将目标窗口移到最前面
                 win32gui.SetForegroundWindow(hwnd)
                 if my in my_range:  # call
@@ -217,10 +219,29 @@ if __name__ == "__main__":
                 # if w:
                 #     im.save(str(gg) + '.jpg')
         else:
-            im = Image.open(
-                """poker23.jpg""")
-            # 截取窗口并保存
-            # bot.click_text(im, '弃牌', (0.698, 0.876, 0.773, 0.927), (100, 100, 500 500))
-            gg = bot.get_gg_info(im)
-            my = sorted(Poker.get_poker_from_string(gg.my_cards))
-            print(gg)
+            # im = Image.open(
+            #     """poker23.jpg""")
+            # # 截取窗口并保存
+            # # bot.click_text(im, '弃牌', (0.698, 0.876, 0.773, 0.927), (100, 100, 500 500))
+            # gg = bot.get_gg_info(im)
+            # my = sorted(Poker.get_poker_from_string(gg.my_cards))
+            # print(gg)
+
+            # 取胜率
+            p = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']
+            t = []
+            for i in range(0, len(p)):
+                for j in range(i, len(p)):
+                    t.append(p[i] + p[j])
+            pair = [x for x in t if x[0] == x[1]]
+            d = [x for x in t if x[0] != x[1]]
+            d1 = [x + 'o' for x in d]
+            d2 = [x + 's' for x in d]
+
+            result = d1 + d2 + pair
+            w = []
+            for i in result:
+                win = bot.win_from_pokerStra(i)
+                if win > 45:
+                    w.append(i)
+            print(','.join(w))
