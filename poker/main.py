@@ -148,8 +148,9 @@ if __name__ == "__main__":
     import win32con, win32gui
     from ctypes import wintypes
     import ctypes
-    import re
+    import os
     import pyautogui
+    import random
 
 
     def my_print(s):
@@ -162,7 +163,7 @@ if __name__ == "__main__":
         ALL IN
     """
     card_runners__open_raising_chart_bu = '22+,A2s+,K2s+,Q5s+,J7s+,T8s+,97s+,86s+,75s+,65s,A3o+,K9o+,Q9o+,J9o+,T8o+,98o'
-    win_45_orc_bu= '22+,A2s+,K8s+,QTs+,A2o+,KTo+,QJo'
+    win_45_orc_bu = '22+,A2s+,K8s+,QTs+,A2o+,KTo+,QJo'
 
     texas = TexasHoldemPoker([])
     bot = TexasHoldemPokerBOT()
@@ -215,33 +216,47 @@ if __name__ == "__main__":
                 if my in my_range:  # call
                     bot.click_text(im, '全押', (0.866, 0.875, 0.945, 0.922), rect)
                 else:  # fold
-                    bot.click_text(im, '弃牌', (0.698, 0.876, 0.773, 0.927), rect)
+                    # 加入白给来混淆对手
+                    chance = 20  # 20%的概率
+                    # 生成0-99的随机整数
+                    random_num = random.randint(0, 99)
+                    # 判断随机数是否小于概率值
+                    if random_num < chance:
+                        print('白给的all in')
+                        bot.click_text(im, '全押', (0.866, 0.875, 0.945, 0.922), rect)  # 概率事件触发
+                    else:
+                        bot.click_text(im, '弃牌', (0.698, 0.876, 0.773, 0.927), rect)  # 概率事件未触发
+
                 # if w:
                 #     im.save(str(gg) + '.jpg')
         else:
-            # im = Image.open(
-            #     """poker23.jpg""")
-            # # 截取窗口并保存
-            # # bot.click_text(im, '弃牌', (0.698, 0.876, 0.773, 0.927), (100, 100, 500 500))
-            # gg = bot.get_gg_info(im)
-            # my = sorted(Poker.get_poker_from_string(gg.my_cards))
-            # print(gg)
-
+            for i in [i for i in os.listdir('./') if 'jpg' in i]:
+                im = Image.open(i)
+                # 截取窗口并保存
+                # bot.click_text(im, '弃牌', (0.698, 0.876, 0.773, 0.927), (100, 100, 500 500))
+                gg = bot.get_gg_info(im)
+                my = sorted(Poker.get_poker_from_string(gg.my_cards))
+                print(gg)
+            print()
             # 取胜率
-            p = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']
-            t = []
-            for i in range(0, len(p)):
-                for j in range(i, len(p)):
-                    t.append(p[i] + p[j])
-            pair = [x for x in t if x[0] == x[1]]
-            d = [x for x in t if x[0] != x[1]]
-            d1 = [x + 'o' for x in d]
-            d2 = [x + 's' for x in d]
+            # p = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']
+            # t = []
+            # for i in range(0, len(p)):
+            #     for j in range(i, len(p)):
+            #         t.append(p[i] + p[j])
+            # pair = [x for x in t if x[0] == x[1]]
+            # d = [x for x in t if x[0] != x[1]]
+            # d1 = [x + 'o' for x in d]
+            # d2 = [x + 's' for x in d]
+            #
+            # result = d1 + d2 + pair
+            # w = []
+            # for i in result:
+            #     win = bot.win_from_pokerStra(i)
+            #     if win > 45:
+            #         w.append(i)
+            # print(','.join(w))
 
-            result = d1 + d2 + pair
-            w = []
-            for i in result:
-                win = bot.win_from_pokerStra(i)
-                if win > 45:
-                    w.append(i)
-            print(','.join(w))
+            # 取train文件数组
+            # n = [i[:2] for i in os.listdir('train/') if 'txt' in i]
+            # print(n)
