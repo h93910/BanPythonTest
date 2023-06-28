@@ -168,16 +168,13 @@ if __name__ == "__main__":
     texas = TexasHoldemPoker([])
     bot = TexasHoldemPokerBOT()
     my_range = texas.string_range_combine(win_45_orc_bu)
-    t = datetime.datetime.now()
-    hwnd_set = bot.find_proccess('色')
-    print(datetime.datetime.now() - t)
 
     w = True
     while True:
         hwnd = 0
         rect = None
         if w:
-
+            hwnd_set = bot.find_proccess('色')
             for hwnd in hwnd_set:
                 # 截取窗口并保存
                 rect = bot.get_window_pos(hwnd)
@@ -211,13 +208,15 @@ if __name__ == "__main__":
                 if rect is None or w is False:
                     my_print('没取到窗口的rect')
                     continue
+                # 发送还原最小化窗口的信息
+                win32gui.SendMessage(hwnd, win32con.WM_SYSCOMMAND, win32con.SC_RESTORE, 0)
                 # 将目标窗口移到最前面
                 win32gui.SetForegroundWindow(hwnd)
                 if my in my_range:  # call
                     bot.click_text(im, '全押', (0.866, 0.875, 0.945, 0.922), rect)
                 else:  # fold
                     # 加入白给来混淆对手
-                    chance = 20  # 20%的概率
+                    chance = 10  # 20%的概率
                     # 生成0-99的随机整数
                     random_num = random.randint(0, 99)
                     # 判断随机数是否小于概率值

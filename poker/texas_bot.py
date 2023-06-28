@@ -585,11 +585,9 @@ class TexasHoldemPokerBOT:
 
         w, h = pic.size
         # 查自己的池
-        t1 = time.time()
         region = pic.crop((int(w * 0.44), int(h * 0.905), int(w * 0.565), int(h * 0.942)))
         # 识别文字中的时间，用于保存文字名
         text = pytesseract.image_to_string(region)
-        print(time.time() - t1)
         pattern = re.compile(r'(.)(\d{1,3}[,\d{3}]*.\d+)')
         search = re.search(pattern, text)
         if search is not None:
@@ -612,16 +610,16 @@ class TexasHoldemPokerBOT:
         public_card = [card1, card2, card3, card4, card5]
         l = [self.get_card_info_from_pic(x) for x in public_card]
         # 保存train
-        all_card = []
-        for i in 'dchs':
-            for j in ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']:
-                all_card.append(j + i)
-        for i in range(0, len(l)):
-            if l[i] is not None:
-                file_name = f'{l[i]}_{i}'
-                public_card[i].save(f'./train/{file_name}.jpg')
-                with open(f'./train/{file_name}.txt', 'w') as f:
-                    f.write(f'{all_card.index(l[i])} 0.500000 0.500000 1.000000 1.000000')
+        # all_card = []
+        # for i in 'dchs':
+        #     for j in ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']:
+        #         all_card.append(j + i)
+        # for i in range(0, len(l)):
+        #     if l[i] is not None:
+        #         file_name = f'{l[i]}_{i}'
+        #         public_card[i].save(f'./train/{file_name}.jpg')
+        #         with open(f'./train/{file_name}.txt', 'w') as f:
+        #             f.write(f'{all_card.index(l[i])} 0.500000 0.500000 1.000000 1.000000')
 
         gg.public_cards = l
 
