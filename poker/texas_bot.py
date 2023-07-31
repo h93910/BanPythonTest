@@ -1,17 +1,21 @@
+import ctypes
 import datetime
 import random
-import time
-from itertools import combinations, product
-import numpy as np
-from dataclasses import dataclass, field
-from PIL import ImageGrab, Image
-import win32con, win32gui
-from ctypes import wintypes
-import ctypes
-import pytesseract
 import re
-import pyperclip as pc
+from ctypes import wintypes
+from dataclasses import dataclass
+from itertools import combinations, product
+
+import numpy as np
 import pyautogui
+import pyperclip as pc
+import pytesseract
+import win32con
+import win32gui
+from PIL import ImageGrab
+
+import pandas as pd
+from io import StringIO
 
 from poker import Poker
 
@@ -580,18 +584,33 @@ class TexasHoldemPokerBOT:
                     self.get_card_info_from_pic(region)
         return None
 
-    def get_gg_info(self, pic):
+    def get_gg_info(self, pic, player=4):
+        """
+            取当局场面上的信息
+        :param pic: 界面的截图
+        :param player: 玩家的数量,默认为四个
+        :return:
+        """
         gg = GGGameInfo()
-
         w, h = pic.size
+
+        def get_scope_coin(rect_p):
+            texts = self.get_scope_texts_info(pic, rect_p)
+            coin_pattern = re.compile(r'(.)(\d{1,3}[,\d{3}]*.\d+)')
+            for t in texts:
+                search = re.search(coin_pattern, t)
+                if search is not None:
+                    return float(search.group(2).replace(' ', '').replace(',', ''))
+            return 0
+
         # 查自己的池
-        region = pic.crop((int(w * 0.44), int(h * 0.905), int(w * 0.565), int(h * 0.942)))
-        # 识别文字中的时间，用于保存文字名
-        text = pytesseract.image_to_string(region)
-        pattern = re.compile(r'(.)(\d{1,3}[,\d{3}]*.\d+)')
-        search = re.search(pattern, text)
-        if search is not None:
-            gg.my_pool = float(search.group(2).replace(' ', '').replace(',', ''))
+        gg.my_pool = get_scope_coin((0.44, 0.905, 0.565, 0.942))
+        if player == 4:  # 四人场,取信息的方向:下家顺时针
+            coordinates = [(0.0, 0.3, 0.25, 0.6), (0.35, 0.0, 0.65, 0.32), (0.7, 0.3, 1, 0.6)]
+            pools = []
+            for c in coordinates:
+                pools.append(get_scope_coin(c))
+            gg.players_pool = pools
 
         # 查自己的手牌
         card1 = pic.rotate(-5).crop((int(w * 0.421), int(h * 0.74), int(w * 0.448), int(h * 0.814))).convert('RGBA')
@@ -620,18 +639,10 @@ class TexasHoldemPokerBOT:
         #         public_card[i].save(f'./train/{file_name}.jpg')
         #         with open(f'./train/{file_name}.txt', 'w') as f:
         #             f.write(f'{all_card.index(l[i])} 0.500000 0.500000 1.000000 1.000000')
-
         gg.public_cards = l
 
         # 底池
-        region = pic.crop((int(w * 0.39), int(h * 0.368), int(w * 0.65), int(h * 0.405)))
-        # 识别文字中的时间，用于保存文字名
-        config = r'--psm 6 -l eng'
-        text = pytesseract.image_to_string(region, config=config)
-        pattern = re.compile(r'(.)(\d{1,3}[,\d{3}]*.\d+)')
-        search = re.search(pattern, text)
-        if search is not None:
-            gg.pool = float(search.group(2).replace(' ', '').replace(',', ''))
+        gg.pool = get_scope_coin((0.39, 0.368, 0.65, 0.485))
         return gg
 
     def click_percent(self, xp, yp, rect):
@@ -658,14 +669,31 @@ class TexasHoldemPokerBOT:
         w, h = pic.size
         rect_xy = (int(w * rect_p[0]), int(h * rect_p[1]), int(w * rect_p[2]), int(h * rect_p[3]))
         region = pic.crop(rect_xy)
+        region.show()
+        config = r'--psm 6 --oem 3 -l chi_sim'
+        data_file = StringIO(pytesseract.image_to_data(region, config=config))
+        df = pd.read_csv(data_file, sep='\t')
+        # 遍历每一行
+        for index, row in df.iterrows():
+            if text in row['text']: # 找到范围内含有文字的范围,并点击
+                x = rect[0] + rect_xy[0] + row['left'] + row['width'] / 2
+                y = rect[1] + rect_xy[1] + row['top'] + row['height'] / 2
+                pyautogui.leftClick(x, y)
+                break
 
-        config = r'--psm 6 -l chi_sim'
-        t = pytesseract.image_to_string(region, config=config)
-        if text in t:
-            pyautogui.leftClick(int(rect[0] + (rect_xy[2] + rect_xy[0]) / 2),
-                                int(rect[1] + (rect_xy[3] + rect_xy[1]) / 2))
-        else:
-            print(f'没有找到:{text}')
+    def get_scope_texts_info(self, pic, rect_p):
+        '''
+            取图片某范围内的全部识别出的字符串
+        :param pic: 图片
+        :param rect_p: 某个范围内 ，传参为元组 ()
+        :return:
+        '''
+        w, h = pic.size
+        rect_xy = (int(w * rect_p[0]), int(h * rect_p[1]), int(w * rect_p[2]), int(h * rect_p[3]))
+        region = pic.crop(rect_xy)
+        data_file = StringIO(pytesseract.image_to_data(region))
+        df = pd.read_csv(data_file, sep='\t')
+        return [x for x in df['text'].tolist() if type(x) == str]
 
     def find_proccess(self, title):
         # 取所有的顶级窗口
@@ -726,6 +754,7 @@ class TexasHoldemPokerBOT:
 @dataclass
 class GGGameInfo:
     my_pool: float = 0.0
+    players_pool: list = None
     my_cards: str = ""
     public_cards: list = None
     pool: float = 0.0

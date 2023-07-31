@@ -1,4 +1,3 @@
-import tensorflow as tf
 import numpy as np
 import random
 
@@ -104,8 +103,11 @@ def do_prediction(a_count, b_count, c_count, d_count, a, b, c, d):
 
 
 if __name__ == "__main__":
-    x_data = np.linspace(1, 100, 100).tolist()[2-100:]
-    print(x_data)
+    import logging
+
+    logging.basicConfig(filename='file.txt', filemode='a', format='%(message)s')
+    logging.warning('日志文本')
+    logging.warning('日dg')
 
 if __name__ == "__main2__":
     init_data()

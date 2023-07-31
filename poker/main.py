@@ -1,8 +1,6 @@
-import datetime
 import getopt
-import time
-
 import sys
+import time
 
 from poker import Poker
 from texas import TexasHoldemPoker
@@ -146,18 +144,19 @@ if __name__ == "__main__2":
 if __name__ == "__main__":
     from PIL import ImageGrab, Image
     import win32con, win32gui
-    from ctypes import wintypes
-    import ctypes
-    import os
-    import pyautogui
     import random
-
+    from paddleocr import PaddleOCR, draw_ocr
+    import numpy as np
+    import os
 
     def my_print(s):
-        log = False
+        log = True
         if log:
             print(s)
 
+
+    # 例如`ch`, `en`, `fr`, `german`, `korean`, `japan`
+    ocr = PaddleOCR(use_angle_cls=True, use_gpu=False, lang="ch")
 
     """
         ALL IN
@@ -171,7 +170,7 @@ if __name__ == "__main__":
     my_range = texas.string_range_combine(win_45_orc_bu)
     free_range = texas.string_range_combine(win_35_orc_bu)
 
-    w = True
+    w = False
     while True:
         hwnd = 0
         rect = None
@@ -239,25 +238,41 @@ if __name__ == "__main__":
             #     my = sorted(Poker.get_poker_from_string(gg.my_cards))
             #     print(gg)
             # print()
-            # 取胜率
-            p = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']
-            t = []
-            for i in range(0, len(p)):
-                for j in range(i, len(p)):
-                    t.append(p[i] + p[j])
-            pair = [x for x in t if x[0] == x[1]]
-            d = [x for x in t if x[0] != x[1]]
-            d1 = [x + 'o' for x in d]
-            d2 = [x + 's' for x in d]
 
-            result = d1 + d2 + pair
-            w = []
-            for i in result:
-                win = bot.win_from_pokerStra(i)
-                if win > 35:
-                    w.append(i)
-            print(','.join(w))
+            # =================用于在Equilab中对比取胜率==================
+            # p = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2']
+            # t = []
+            # for i in range(0, len(p)):
+            #     for j in range(i, len(p)):
+            #         t.append(p[i] + p[j])
+            # pair = [x for x in t if x[0] == x[1]]
+            # d = [x for x in t if x[0] != x[1]]
+            # d1 = [x + 'o' for x in d]
+            # d2 = [x + 's' for x in d]
+            #
+            # result = d1 + d2 + pair
+            # w = []
+            # for i in result:
+            #     win = bot.win_from_pokerStra(i)
+            #     if win > 35:
+            #         w.append(i)
+            # print(','.join(w))
+            # ========== 用于在Equilab中对比取胜率 End==================
 
-            # 取train文件数组
-            # n = [i[:2] for i in os.listdir('train/') if 'txt' in i]
-            # print(n)
+            # Paddleocr目前支持的多语言语种可以通过修改lang参数进行切换
+            for i in [i for i in os.listdir('./') if 'jpg' in i]:
+                img = Image.open(i)
+                t1=time.time()
+                result = ocr.ocr(np.array(img), cls=True)
+                print(time.time()-t1)
+                for line in result:
+                    # print(line[-1][0], line[-1][1])
+                    print(line)
+
+            # try:
+            #     gg = bot.get_gg_info(img)
+            #     my_print(gg)
+            # except Exception as e:
+            #     print(e)
+            #     continue
+            # bot.click_text(img, '更换', (0.0, 0.78, 0.15, 0.95), None)
