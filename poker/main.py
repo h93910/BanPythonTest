@@ -145,9 +145,9 @@ if __name__ == "__main__":
     from PIL import ImageGrab, Image
     import win32con, win32gui
     import random
-    from paddleocr import PaddleOCR, draw_ocr
-    import numpy as np
+    from paddleocr import PaddleOCR
     import os
+
 
     def my_print(s):
         log = True
@@ -193,6 +193,8 @@ if __name__ == "__main__":
                     continue
                 if gg.my_pool > 150000:
                     bot.recycle_coin(rect)
+                if True in [x > 12000 for x in gg.players_pool] and gg.my_pool < 10000:  # 实力差太大，直接换桌
+                    bot.click_scope_texts(im, '更换', rect)
                 if gg.my_cards == '':  # 没查到自己没有牌,等两秒再重新查
                     my_print('未查询到自己的牌')
                     bot.click_percent(0.42, 0.63, rect)
@@ -262,12 +264,14 @@ if __name__ == "__main__":
             # Paddleocr目前支持的多语言语种可以通过修改lang参数进行切换
             for i in [i for i in os.listdir('./') if 'jpg' in i]:
                 img = Image.open(i)
-                t1=time.time()
-                result = ocr.ocr(np.array(img), cls=True)
-                print(time.time()-t1)
-                for line in result:
-                    # print(line[-1][0], line[-1][1])
-                    print(line)
+                t1 = time.time()
+                # bot.click_scope_texts(img, '更换', [300, 400, 600, 800])
+                # result = ocr.ocr(np.array(img), cls=True)
+                bot.get_gg_info(img)
+                print(time.time() - t1)
+                # for line in result:
+                #     # print(line[-1][0], line[-1][1])
+                #     print(line)
 
             # try:
             #     gg = bot.get_gg_info(img)

@@ -16,13 +16,15 @@ from PIL import ImageGrab
 
 import pandas as pd
 from io import StringIO
+from paddleocr import PaddleOCR, draw_ocr
 
 from poker import Poker
 
 
 class TexasHoldemPokerBOT:
     def __init__(self):
-        pass
+        self.ocr = PaddleOCR(use_angle_cls=True, use_gpu=False, lang="ch")
+        self.pic_texts_info = None
 
     def thinking_primary(self, can_bet, can_check, bb, public_cards, plays_cards, other_on_play_count, pool,
                          single_pool, have_human):
@@ -593,9 +595,10 @@ class TexasHoldemPokerBOT:
         """
         gg = GGGameInfo()
         w, h = pic.size
+        self.pic_texts_info = self.ocr.ocr(np.array(pic), cls=True)
 
         def get_scope_coin(rect_p):
-            texts = self.get_scope_texts_info(pic, rect_p)
+            texts = self.get_scope_texts_info((w, h), rect_p)
             coin_pattern = re.compile(r'(.)(\d{1,3}[,\d{3}]*.\d+)')
             for t in texts:
                 search = re.search(coin_pattern, t)
@@ -675,25 +678,45 @@ class TexasHoldemPokerBOT:
         df = pd.read_csv(data_file, sep='\t')
         # 遍历每一行
         for index, row in df.iterrows():
-            if text in row['text']: # 找到范围内含有文字的范围,并点击
+            if text in row['text']:  # 找到范围内含有文字的范围,并点击
                 x = rect[0] + rect_xy[0] + row['left'] + row['width'] / 2
                 y = rect[1] + rect_xy[1] + row['top'] + row['height'] / 2
                 pyautogui.leftClick(x, y)
                 break
 
-    def get_scope_texts_info(self, pic, rect_p):
+    def get_scope_texts_info(self, size, rect_p):
         '''
             取图片某范围内的全部识别出的字符串
-        :param pic: 图片
-        :param rect_p: 某个范围内 ，传参为元组 ()
+        :param size: 窗口的宽高 ，传参为元组 ()
+        :param rect_p: 某个范围内 ，传参为元组 () left top right bottom
         :return:
         '''
+
+        left = size[0] * rect_p[0]
+        top = size[1] * rect_p[1]
+        right = size[0] * rect_p[2]
+        bottom = size[1] * rect_p[3]
+
+        l = list(filter(
+            lambda x: x[0][0][0] >= left and x[0][0][1] >= top and
+                      x[0][2][0] <= right and x[0][2][1] <= bottom, self.pic_texts_info))
+        return l[0]
+
+    def click_scope_texts(self, pic, text, rect):
+        '''
+            点击图片内的识别出字符
+        :param pic: 图片
+        :param text: 要点击的文字
+        :param rect: 窗口坐标信息
+        '''
         w, h = pic.size
-        rect_xy = (int(w * rect_p[0]), int(h * rect_p[1]), int(w * rect_p[2]), int(h * rect_p[3]))
-        region = pic.crop(rect_xy)
-        data_file = StringIO(pytesseract.image_to_data(region))
-        df = pd.read_csv(data_file, sep='\t')
-        return [x for x in df['text'].tolist() if type(x) == str]
+        found = [x for x in self.pic_texts_info[0] if text in x[1][0] and x[1][1] > 0.9]
+        for i in found:
+            # 返回的坐标信息为左上，右上，右下，左下各点坐标
+            coordinate = i[0]
+            xp = (coordinate[0][0] + coordinate[1][0]) / 2 / w
+            yp = (coordinate[1][1] + coordinate[2][1]) / 2 / h
+            self.click_percent(xp, yp, rect)
 
     def find_proccess(self, title):
         # 取所有的顶级窗口
