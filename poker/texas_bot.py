@@ -16,14 +16,18 @@ from PIL import ImageGrab
 
 import pandas as pd
 from io import StringIO
-from paddleocr import PaddleOCR, draw_ocr
+from paddleocr import PaddleOCR
+import paddle
 
 from poker import Poker
 
 
 class TexasHoldemPokerBOT:
     def __init__(self):
-        self.ocr = PaddleOCR(use_angle_cls=True, use_gpu=False, lang="ch")
+        paddle.utils.run_check()
+        gpu_available = paddle.device.is_compiled_with_cuda()
+        print("GPU available:", gpu_available)
+        self.ocr = PaddleOCR(use_angle_cls=True, use_gpu=gpu_available, lang="ch",show_log=False)
         self.pic_texts_info = None
 
     def thinking_primary(self, can_bet, can_check, bb, public_cards, plays_cards, other_on_play_count, pool,
@@ -598,18 +602,17 @@ class TexasHoldemPokerBOT:
         self.pic_texts_info = self.ocr.ocr(np.array(pic), cls=True)
 
         def get_scope_coin(rect_p):
-            texts = self.get_scope_texts_info((w, h), rect_p)
+            t = self.get_scope_texts_info((w, h), rect_p)
             coin_pattern = re.compile(r'(.)(\d{1,3}[,\d{3}]*.\d+)')
-            for t in texts:
-                search = re.search(coin_pattern, t)
-                if search is not None:
-                    return float(search.group(2).replace(' ', '').replace(',', ''))
+            search = re.search(coin_pattern, t)
+            if search is not None:
+                return float(search.group(2).replace(' ', '').replace(',', '').replace('，', '').replace(':', ''))
             return 0
 
         # 查自己的池
-        gg.my_pool = get_scope_coin((0.44, 0.905, 0.565, 0.942))
+        gg.my_pool = get_scope_coin((0.44, 0.905, 0.565, 0.97))
         if player == 4:  # 四人场,取信息的方向:下家顺时针
-            coordinates = [(0.0, 0.3, 0.25, 0.6), (0.35, 0.0, 0.65, 0.32), (0.7, 0.3, 1, 0.6)]
+            coordinates = [(0.0, 0.515, 0.16, 0.56), (0.42, 0.23, 0.60, 0.28), (0.85, 0.515, 0.99, 0.56)]
             pools = []
             for c in coordinates:
                 pools.append(get_scope_coin(c))
@@ -672,7 +675,7 @@ class TexasHoldemPokerBOT:
         w, h = pic.size
         rect_xy = (int(w * rect_p[0]), int(h * rect_p[1]), int(w * rect_p[2]), int(h * rect_p[3]))
         region = pic.crop(rect_xy)
-        region.show()
+        # region.show()
         config = r'--psm 6 --oem 3 -l chi_sim'
         data_file = StringIO(pytesseract.image_to_data(region, config=config))
         df = pd.read_csv(data_file, sep='\t')
@@ -699,24 +702,34 @@ class TexasHoldemPokerBOT:
 
         l = list(filter(
             lambda x: x[0][0][0] >= left and x[0][0][1] >= top and
-                      x[0][2][0] <= right and x[0][2][1] <= bottom, self.pic_texts_info))
-        return l[0]
+                      x[0][2][0] <= right and x[0][2][1] <= bottom, self.pic_texts_info[0]))
+        return l[0][1][0] if len(l) > 0 else ""
 
-    def click_scope_texts(self, pic, text, rect):
+    def click_scope_texts(self, pic, text, rect, rect_p):
         '''
             点击图片内的识别出字符
         :param pic: 图片
         :param text: 要点击的文字
         :param rect: 窗口坐标信息
+        :param rect_p: 文字所在范围
+        :return 是否已经点击成功
         '''
         w, h = pic.size
-        found = [x for x in self.pic_texts_info[0] if text in x[1][0] and x[1][1] > 0.9]
+        left = w * rect_p[0]
+        top = h * rect_p[1]
+        right = w * rect_p[2]
+        bottom = h * rect_p[3]
+
+        found = [x for x in self.pic_texts_info[0] if text in x[1][0] and x[1][1] > 0.5 and
+                 x[0][0][0] >= left and x[0][0][1] >= top and x[0][2][0] <= right and x[0][2][1] <= bottom]
         for i in found:
             # 返回的坐标信息为左上，右上，右下，左下各点坐标
             coordinate = i[0]
             xp = (coordinate[0][0] + coordinate[1][0]) / 2 / w
             yp = (coordinate[1][1] + coordinate[2][1]) / 2 / h
             self.click_percent(xp, yp, rect)
+            return True
+        return False
 
     def find_proccess(self, title):
         # 取所有的顶级窗口
@@ -766,10 +779,11 @@ class TexasHoldemPokerBOT:
         self.click_percent(0.939, 0.093, rect)
         pyautogui.sleep(1)
         # 再截图找确定按钮
-        im = ImageGrab.grab(rect)
-        self.click_text(im, '确定', (0.374, 0.78, 0.454, 0.82), rect)
-        pyautogui.sleep(0.5)
-        self.click_text(im, '确定', (0.374, 0.78, 0.454, 0.82), rect)
+        img = ImageGrab.grab(rect)
+        self.pic_texts_info = self.ocr.ocr(np.array(img), cls=True)
+        self.click_scope_texts(img, '确定', rect, (0.374, 0.78, 0.454, 0.82))
+        pyautogui.sleep(1)
+        self.click_scope_texts(img, '确定', rect, (0.374, 0.78, 0.454, 0.82))
         t = datetime.datetime.now()
         print(f'=========={str(t)}==========\n\n回收金币成功\n\n====================')
 
@@ -781,3 +795,4 @@ class GGGameInfo:
     my_cards: str = ""
     public_cards: list = None
     pool: float = 0.0
+    played = 0

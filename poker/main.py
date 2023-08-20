@@ -1,3 +1,4 @@
+import datetime
 import getopt
 import sys
 import time
@@ -147,17 +148,17 @@ if __name__ == "__main__":
     import random
     from paddleocr import PaddleOCR
     import os
+    import numpy as np
 
 
     def my_print(s):
-        log = True
+        log = False
         if log:
             print(s)
 
 
     # 例如`ch`, `en`, `fr`, `german`, `korean`, `japan`
-    ocr = PaddleOCR(use_angle_cls=True, use_gpu=False, lang="ch")
-
+    # ocr = PaddleOCR(use_angle_cls=True, use_gpu=True, lang="ch")
     """
         ALL IN
     """
@@ -170,13 +171,17 @@ if __name__ == "__main__":
     my_range = texas.string_range_combine(win_45_orc_bu)
     free_range = texas.string_range_combine(win_35_orc_bu)
 
-    w = False
+    w = True
+    gg_set = None  # 存储gg游戏信息
+    run_away = []
     while True:
         hwnd = 0
         rect = None
         if w:
             hwnd_set = bot.find_proccess('色')
-            for hwnd in hwnd_set:
+            if gg_set is None:
+                gg_set = [None] * len(hwnd_set)
+            for i, hwnd in enumerate(hwnd_set):
                 # 截取窗口并保存
                 rect = bot.get_window_pos(hwnd)
                 # 发送还原最小化窗口的信息
@@ -193,11 +198,21 @@ if __name__ == "__main__":
                     continue
                 if gg.my_pool > 150000:
                     bot.recycle_coin(rect)
-                if True in [x > 12000 for x in gg.players_pool] and gg.my_pool < 10000:  # 实力差太大，直接换桌
-                    bot.click_scope_texts(im, '更换', rect)
+                if True in [x > 120000 for x in gg.players_pool] and gg.my_pool < 10000:  # 实力差太大，直接换桌
+                    if hwnd not in [x[0] for x in run_away]:
+                        bot.click_scope_texts(im, '更换', rect, (0, 0.8, 0.3, 1))
+                        run_away.append((hwnd, time.time() * 10 * 1000))
+                    else:
+                        for h in run_away:
+                            if h[0] == hwnd and time.time() > h[1]:
+                                run_away.remove(h)
+                    continue  # 一定要换桌，不再操作
                 if gg.my_cards == '':  # 没查到自己没有牌,等两秒再重新查
                     my_print('未查询到自己的牌')
                     bot.click_percent(0.42, 0.63, rect)
+                    continue
+                if gg_set[i] is not None and gg_set[i].my_cards == gg.my_cards and gg_set[i].played > 3:
+                    my_print(f'{i} 已经操作过')  # 同一局且已经操作过了就不再操作
                     continue
 
                 # 点pokerStra
@@ -215,20 +230,24 @@ if __name__ == "__main__":
                 win32gui.SendMessage(hwnd, win32con.WM_SYSCOMMAND, win32con.SC_RESTORE, 0)
                 # 将目标窗口移到最前面
                 win32gui.SetForegroundWindow(hwnd)
+                played = False
                 if my in my_range:  # call
-                    bot.click_text(im, '全押', (0.866, 0.875, 0.945, 0.922), rect)
+                    played = bot.click_scope_texts(im, '全押', rect, (0.58, 0.72, 1, 1))
                 else:  # fold
                     # 加入白给来混淆对手
-                    chance = 10  # 20%的概率
+                    chance = 3  # 20%的概率
                     # 生成0-99的随机整数
                     random_num = random.randint(0, 99)
                     # 判断随机数是否小于概率值
                     if random_num < chance and my in free_range:
                         print('白给的all in')
-                        bot.click_text(im, '全押', (0.866, 0.875, 0.945, 0.922), rect)  # 概率事件触发
+                        played = bot.click_scope_texts(im, '全押', rect, (0.58, 0.72, 1, 1))  # 概率事件触发
                     else:
-                        bot.click_text(im, '弃牌', (0.698, 0.876, 0.773, 0.927), rect)  # 概率事件未触发
-
+                        played = bot.click_scope_texts(im, '弃牌', rect, (0.58, 0.72, 1, 1))  # 概率事件未触发
+                if gg_set[i] is None or gg_set[i].my_cards != gg.my_cards:
+                    gg_set[i] = gg
+                gg_set[i].played += 1 if played else 0
+                my_print(f'w {i} played:{gg_set[i].played}')
                 # if w:
                 #     im.save(str(gg) + '.jpg')
         else:
@@ -268,6 +287,7 @@ if __name__ == "__main__":
                 # bot.click_scope_texts(img, '更换', [300, 400, 600, 800])
                 # result = ocr.ocr(np.array(img), cls=True)
                 bot.get_gg_info(img)
+                bot.click_scope_texts(img, '全押', (300, 400), (0.58, 0.72, 1, 1))  # 概率事件触发
                 print(time.time() - t1)
                 # for line in result:
                 #     # print(line[-1][0], line[-1][1])
