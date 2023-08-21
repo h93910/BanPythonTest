@@ -27,7 +27,7 @@ class TexasHoldemPokerBOT:
         paddle.utils.run_check()
         gpu_available = paddle.device.is_compiled_with_cuda()
         print("GPU available:", gpu_available)
-        self.ocr = PaddleOCR(use_angle_cls=True, use_gpu=gpu_available, lang="ch",show_log=False)
+        self.ocr = PaddleOCR(use_angle_cls=True, use_gpu=gpu_available, lang="ch", show_log=False)
         self.pic_texts_info = None
 
     def thinking_primary(self, can_bet, can_check, bb, public_cards, plays_cards, other_on_play_count, pool,
@@ -786,6 +786,20 @@ class TexasHoldemPokerBOT:
         self.click_scope_texts(img, '确定', rect, (0.374, 0.78, 0.454, 0.82))
         t = datetime.datetime.now()
         print(f'=========={str(t)}==========\n\n回收金币成功\n\n====================')
+
+    def no_play_change_desk(self, size, coin):
+        '''
+            是否需要更换牌桌
+        :param size:
+        :param coin:
+        :return:
+        '''
+        is_wait = '等待玩家加入' in self.get_scope_texts_info(size, (0.40, 0.45, 0.60, 0.55))
+        can_change = '更换牌桌' in self.get_scope_texts_info(size, (0.75, 0.85, 1, 1))
+        if is_wait and can_change:
+            print(f'====================\n\n无人玩，换桌，可收{coin}\n\n====================')
+            return True
+        return False
 
 
 @dataclass

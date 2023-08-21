@@ -172,15 +172,13 @@ if __name__ == "__main__":
     free_range = texas.string_range_combine(win_35_orc_bu)
 
     w = True
-    gg_set = None  # 存储gg游戏信息
     run_away = []
+    hwnd_set = bot.find_proccess('色')  # 只查一次,窗口句柄不变
+    gg_set = [None] * len(hwnd_set)  # 存储gg游戏信息
     while True:
         hwnd = 0
         rect = None
         if w:
-            hwnd_set = bot.find_proccess('色')
-            if gg_set is None:
-                gg_set = [None] * len(hwnd_set)
             for i, hwnd in enumerate(hwnd_set):
                 # 截取窗口并保存
                 rect = bot.get_window_pos(hwnd)
@@ -193,23 +191,33 @@ if __name__ == "__main__":
                 try:
                     gg = bot.get_gg_info(im)
                     my_print(gg)
-                except Exception as e:
+                except Exception as e:  # 识别可能会各种出错，直接捕获就行
                     print(e)
                     continue
                 if gg.my_pool > 150000:
                     bot.recycle_coin(rect)
                 if True in [x > 120000 for x in gg.players_pool] and gg.my_pool < 10000:  # 实力差太大，直接换桌
-                    if hwnd not in [x[0] for x in run_away]:
+                    if hwnd not in [x[0] for x in run_away]:  # 如果没在计时
                         bot.click_scope_texts(im, '更换', rect, (0, 0.8, 0.3, 1))
                         run_away.append((hwnd, time.time() * 10 * 1000))
                     else:
                         for h in run_away:
                             if h[0] == hwnd and time.time() > h[1]:
                                 run_away.remove(h)
+                                break
                     continue  # 一定要换桌，不再操作
-                if gg.my_cards == '':  # 没查到自己没有牌,等两秒再重新查
+                if gg.my_cards == '':  # 没查到自己没有牌,就查是否是在等待
                     my_print('未查询到自己的牌')
                     bot.click_percent(0.42, 0.63, rect)
+                    if bot.no_play_change_desk(im.size, gg.my_pool):
+                        if hwnd not in [x[0] for x in run_away]:  # 如果没在计时
+                            bot.click_scope_texts(im, '更换牌桌', rect, (0.75, 0.85, 1, 1))
+                            run_away.append((hwnd, time.time() * 20 * 1000))  # 冷却20秒
+                        else:
+                            for h in run_away:
+                                if h[0] == hwnd and time.time() > h[1]:
+                                    run_away.remove(h)
+                                    break
                     continue
                 if gg_set[i] is not None and gg_set[i].my_cards == gg.my_cards and gg_set[i].played > 3:
                     my_print(f'{i} 已经操作过')  # 同一局且已经操作过了就不再操作
