@@ -218,6 +218,7 @@ if __name__ == "__main__":
                                 if h[0] == hwnd and time.time() > h[1]:
                                     run_away.remove(h)
                                     break
+                    bot.check_sit_down(im, rect)  # 加入空的座位
                     continue
                 if gg_set[i] is not None and gg_set[i].my_cards == gg.my_cards and gg_set[i].played > 3:
                     my_print(f'{i} 已经操作过')  # 同一局且已经操作过了就不再操作

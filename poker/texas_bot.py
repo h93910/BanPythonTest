@@ -794,12 +794,25 @@ class TexasHoldemPokerBOT:
         :param coin:
         :return:
         '''
-        is_wait = '等待玩家加入' in self.get_scope_texts_info(size, (0.40, 0.45, 0.60, 0.55))
-        can_change = '更换牌桌' in self.get_scope_texts_info(size, (0.75, 0.85, 1, 1))
+        is_wait = '等待玩家加入' in self.get_scope_texts_info(size, (0.25, 0.30, 0.80, 0.65))
+        can_change = '更换牌桌' in self.get_scope_texts_info(size, (0.65, 0.75, 1, 1))
         if is_wait and can_change:
             print(f'====================\n\n无人玩，换桌，可收{coin}\n\n====================')
             return True
         return False
+
+    def check_sit_down(self, im, rect, player=4):
+        '''
+            检查能不能坐下，能就坐
+        :param im: 图像
+        :param rect: 窗口信息
+        :param player:当前桌的人数，默认为4个
+        '''
+        if player == 4:  # 四人场,取信息的方向:下家顺时针
+            coordinates = [(0.0, 0.35, 0.20, 0.65), (0.38, 0, 0.65, 0.30), (0.75, 0.35, 1, 0.65)]
+            for c in coordinates:  # 直接全点，有的话
+                if self.click_scope_texts(im, '更换牌桌', rect, c):
+                    break
 
 
 @dataclass
